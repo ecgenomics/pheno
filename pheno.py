@@ -19,23 +19,5 @@ from modules.functions import *
 
 tree = Phylo.read("tree.nw", "newick")
 
-simulate_trait(
-        
-        input_tree = "tree.nw",
-        mode = "bm"
-                    )
-
-simulate_trait(
-        
-        input_tree = "tree.nw",
-        mode = "ou",
-        st_mu = 4,
-        st_dt = 0.1,
-        st_sigma = 0.002,
-        st_theta = 0.02
-                    )
-
-#print(simBM(1,0.1,4))
-
-### End testing area
-
+simwrapper("bm", 10, "tree.nw", "BM")
+simwrapper(sw_name = "ou", sw_number_of_simulations = 10, sw_input_tree = "tree.nw", sw_mode = "OU", sw_seed = 0, sw_theta = 0.5, sw_mu = 8, sw_sigma = 0.22)

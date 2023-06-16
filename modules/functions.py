@@ -13,6 +13,7 @@
 
 # Functions script
 
+import os
 import numpy as np
 from Bio import Phylo
 from Bio.Phylo.BaseTree import Clade
@@ -69,10 +70,9 @@ def cdist(tree, node1, node2):
 
 ### FUNCTION printdict()
 
-def printdict(dictionary, destination_path):
-    with open(destination_path, "w") as out:
-        for x in dictionary.keys():
-            print(x, dictionary[x], file = out)
+def printdict(dictionary, out, tag):
+    for x in dictionary.keys():
+        print(tag, x, dictionary[x], file = out)
 
 ### FUNCTION simulate_trait()
 ### simulates trait evolution on a tree
@@ -179,7 +179,8 @@ def simulate_trait(
                 sim.n2n_paths[c.name] = out
 
             z.terminals = [t.name for t in clade.get_terminals()]
-
+        else:
+            sim.leaf_values[z.name] = z.sim_val
 
         sim.clades.append(z)
     
@@ -190,11 +191,87 @@ def simulate_trait(
             x.terminal_values = [sim.node_values[x] for x in x.terminals]
             x.terminal_values_mean = np.mean(x.terminal_values)
             x.terminal_values_sd = np.std(x.terminal_values)
-            print(x.name, len(x.terminals), x.terminals, x.terminal_values, x.terminal_values_mean, x.terminal_values_sd)
-
-
-
     
+    return sim
 
-    printdict(sim.node_values, mode + "_node_values.txt")
-    printdict(sim.n2n_paths, mode + "_n2n_paths.txt")
+### FUNCTION simwrapper()
+### repeats the simulation and saves the results in different files
+
+def simwrapper(
+        
+        sw_name,                            # wrapper variables
+        sw_number_of_simulations,
+
+        sw_input_tree,                      # simulate_trait variables
+        sw_mode,
+        sw_seed = 0,
+        sw_theta = 0,
+        sw_mu = 0,
+        sw_sigma = 0,
+        sw_dt = 0.1,
+        sw_tree_format = "newick",
+
+        sw_rewrite = True                   # default wrapper variables
+
+    ):    
+
+    # Initialize the results folder
+
+    results_folder = sw_name + "_folder"    
+
+    try:
+        os.mkdir(results_folder)
+    except:
+        if sw_rewrite == True:
+            os.system("rm -r " + results_folder)
+            os.mkdir(results_folder)
+        else:
+            pass
+    # Counter
+    simulation_counter = 0
+    # Outputs
+    nodevalues = open(results_folder + "/node.values", "w")
+    leafvalues = open(results_folder + "/leaf.values", "w")
+    paths = open(results_folder + "/paths.pernode", "w")
+    clusters = open(results_folder + "/clusters.values", "w")
+
+
+
+    while simulation_counter < sw_number_of_simulations:
+        s = simulate_trait(     
+        input_tree = sw_input_tree ,
+        mode = sw_mode,
+        seed = sw_seed,
+        st_theta = sw_theta,
+        st_mu = sw_mu,
+        st_sigma = sw_sigma,
+        st_dt = sw_dt,
+        tree_format = sw_tree_format)
+
+        # Counter
+        simulation_counter += 1
+        simtag = "cycle_" + str(simulation_counter)
+
+        # Cluster file
+        print("simulation", "node", "#leaves", "mean", "stdev", "leaf values", "mode= "+sw_mode, file=clusters)
+        for x in s.clades:
+            if len(x.terminal_values) > 0:
+                print(simtag, x.name, len(x.terminal_values), x.terminal_values_mean, x.terminal_values_sd,x.terminal_values, file = clusters )
+        print("#", file=clusters)
+
+        # Paths file
+        printdict(s.n2n_paths,paths, simtag)     
+        print("# Mode =" + sw_mode, file=paths)
+   
+        printdict(s.leaf_values,leafvalues, simtag)  
+        print("# Mode =" + sw_mode, file=leafvalues)
+      
+        printdict(s.node_values,nodevalues, simtag)        
+        print("# Mode =" + sw_mode, file=nodevalues)
+
+    # Output Closure
+    clusters.close()
+    paths.close()
+    leafvalues.close()
+    nodevalues.close()
+    return 0
